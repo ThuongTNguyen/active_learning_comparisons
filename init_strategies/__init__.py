@@ -1,0 +1,1 @@
+from .random import init_random

@@ -1,0 +1,46 @@
+\begin{tabular}{llll}
+\toprule
+train size bin &        pipeline &     QS & partial\_auc \\
+\midrule
+      (0-1250] &         RoBERTa &    dal &      875.46 \\
+      (0-1250] &         RoBERTa &   real &      873.64 \\
+      (0-1250] &         RoBERTa & margin &      873.36 \\
+      (0-1250] &         RoBERTa &    cal &      871.92 \\
+      (0-1250] &         RoBERTa & random &      862.99 \\
+      (0-1250] & LinearSVC\_MPNet & random &      807.04 \\
+      (0-1250] & LinearSVC\_MPNet &   real &      794.69 \\
+      (0-1250] & LinearSVC\_MPNet & margin &      793.08 \\
+      (0-1250] & LinearSVC\_MPNet &    cal &      790.42 \\
+      (0-1250] & LinearSVC\_MPNet &    dal &      789.60 \\
+   (1250-2500] &         RoBERTa &    cal &      986.22 \\
+   (1250-2500] &         RoBERTa &    dal &      984.40 \\
+   (1250-2500] &         RoBERTa &   real &      981.07 \\
+   (1250-2500] &         RoBERTa & margin &      976.07 \\
+   (1250-2500] &         RoBERTa & random &      974.04 \\
+   (1250-2500] & LinearSVC\_MPNet & random &      913.76 \\
+   (1250-2500] & LinearSVC\_MPNet &   real &      907.98 \\
+   (1250-2500] & LinearSVC\_MPNet & margin &      907.39 \\
+   (1250-2500] & LinearSVC\_MPNet &    dal &      900.13 \\
+   (1250-2500] & LinearSVC\_MPNet &    cal &      899.12 \\
+   (2500-3750] &         RoBERTa & margin &      903.60 \\
+   (2500-3750] &         RoBERTa &    dal &      900.93 \\
+   (2500-3750] &         RoBERTa &   real &      900.83 \\
+   (2500-3750] &         RoBERTa &    cal &      897.16 \\
+   (2500-3750] &         RoBERTa & random &      891.58 \\
+   (2500-3750] & LinearSVC\_MPNet & random &      837.91 \\
+   (2500-3750] & LinearSVC\_MPNet & margin &      836.57 \\
+   (2500-3750] & LinearSVC\_MPNet &   real &      833.95 \\
+   (2500-3750] & LinearSVC\_MPNet &    dal &      828.73 \\
+   (2500-3750] & LinearSVC\_MPNet &    cal &      827.24 \\
+   (3750-5000] &         RoBERTa &   real &     1087.92 \\
+   (3750-5000] &         RoBERTa & margin &     1087.37 \\
+   (3750-5000] &         RoBERTa &    dal &     1085.06 \\
+   (3750-5000] &         RoBERTa &    cal &     1076.79 \\
+   (3750-5000] &         RoBERTa & random &     1075.20 \\
+   (3750-5000] & LinearSVC\_MPNet & margin &     1016.94 \\
+   (3750-5000] & LinearSVC\_MPNet & random &     1010.88 \\
+   (3750-5000] & LinearSVC\_MPNet &   real &     1008.67 \\
+   (3750-5000] & LinearSVC\_MPNet &    dal &     1004.44 \\
+   (3750-5000] & LinearSVC\_MPNet &    cal &      999.97 \\
+\bottomrule
+\end{tabular}

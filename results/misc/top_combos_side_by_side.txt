@@ -1,0 +1,26 @@
+\begin{tabular}{lllllll}
+\toprule
+ train size &   pipeline &     QS &     AUC &            pipeline &     QS &     AUC \\
+\midrule
+   (0-1250] & 1. RoBERTa &    dal &  875.46 &  6. LinearSVC\_MPNet & random &  807.04 \\
+   (0-1250] & 2. RoBERTa &   real &  873.64 &  7. LinearSVC\_MPNet &   real &  794.69 \\
+   (0-1250] & 3. RoBERTa & margin &  873.36 &  8. LinearSVC\_MPNet & margin &  793.08 \\
+   (0-1250] & 4. RoBERTa &    cal &  871.92 &  9. LinearSVC\_MPNet &    cal &  790.42 \\
+   (0-1250] & 5. RoBERTa & random &  862.99 & 10. LinearSVC\_MPNet &    dal &  789.60 \\
+(1250-2500] & 1. RoBERTa &    cal &  986.22 &  6. LinearSVC\_MPNet & random &  913.76 \\
+(1250-2500] & 2. RoBERTa &    dal &  984.40 &  7. LinearSVC\_MPNet &   real &  907.98 \\
+(1250-2500] & 3. RoBERTa &   real &  981.07 &  8. LinearSVC\_MPNet & margin &  907.39 \\
+(1250-2500] & 4. RoBERTa & margin &  976.07 &  9. LinearSVC\_MPNet &    dal &  900.13 \\
+(1250-2500] & 5. RoBERTa & random &  974.04 & 10. LinearSVC\_MPNet &    cal &  899.12 \\
+(2500-3750] & 1. RoBERTa & margin &  903.60 &  6. LinearSVC\_MPNet & random &  837.91 \\
+(2500-3750] & 2. RoBERTa &    dal &  900.93 &  7. LinearSVC\_MPNet & margin &  836.57 \\
+(2500-3750] & 3. RoBERTa &   real &  900.83 &  8. LinearSVC\_MPNet &   real &  833.95 \\
+(2500-3750] & 4. RoBERTa &    cal &  897.16 &  9. LinearSVC\_MPNet &    dal &  828.73 \\
+(2500-3750] & 5. RoBERTa & random &  891.58 & 10. LinearSVC\_MPNet &    cal &  827.24 \\
+(3750-5000] & 1. RoBERTa &   real & 1087.92 &  6. LinearSVC\_MPNet & margin & 1016.94 \\
+(3750-5000] & 2. RoBERTa & margin & 1087.37 &  7. LinearSVC\_MPNet & random & 1010.88 \\
+(3750-5000] & 3. RoBERTa &    dal & 1085.06 &  8. LinearSVC\_MPNet &   real & 1008.67 \\
+(3750-5000] & 4. RoBERTa &    cal & 1076.79 &  9. LinearSVC\_MPNet &    dal & 1004.44 \\
+(3750-5000] & 5. RoBERTa & random & 1075.20 & 10. LinearSVC\_MPNet &    cal &  999.97 \\
+\bottomrule
+\end{tabular}
