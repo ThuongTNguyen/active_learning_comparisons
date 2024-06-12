@@ -332,6 +332,12 @@ def datawise_plots(df, op_dir, suffix=None):
             temp_df = df.query(f'dataset=="{ds}" and clf=="{p[0]}" and rep=="{p[1]}"')
             sns.lineplot(temp_df, x='train_size', y='F1 macro', hue='QS', ax=axes[fig_posn])
 
+            ax = axes[fig_posn]
+            ax.set_xlabel(ax.get_xlabel(), fontsize=22)
+            ax.set_ylabel(ax.get_ylabel(), fontsize=22)
+            ax.tick_params(axis='both', which='major', labelsize=18)
+            ax.legend(fontsize=22)
+
         fname = f"{ds}_{suffix}" if suffix else f"{ds}"
         for extn in ['png', 'pdf']:
             plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
@@ -367,7 +373,8 @@ def problem_with_wilcoxon(op_dir):
     y1, y2 = y + 0.03 + np.random.normal(0, 0.001, len(y)), y + 0.1 + np.random.normal(0, 0.001, len(y))
     d1, d2 = y1 - y, y2 - y
 
-    fig = plt.figure()
+    fig = plt.figure(figsize = (6, 4))
+
     ax = fig.add_subplot(111)
     ax.plot(X, y, marker='o', label='random')
 
@@ -375,10 +382,12 @@ def problem_with_wilcoxon(op_dir):
     ax.plot(X, y1, marker='o', label=f'QS 1, p={p:.2E}')
     _, p = wilcoxon(d2, alternative='greater')
     ax.plot(X, y2, marker='o', label=f'QS 2, p={p:.2E}')
-    ax.set_xlabel('train size')
-    ax.set_ylabel('F1 macro')
-    ax.set_title('p-value, Wilcoxon test, for a QS being better than random')
-    ax.legend()
+    ax.set_xlabel('train size', fontsize=16)
+    ax.set_ylabel('F1 macro', fontsize=16)
+    ax.set_title('p-value, Wilcoxon test, for a QS being better than random',fontsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.legend(fontsize=16)
+    # ax.legend()
     # ax.set_ylim(0, 1)
     fname = f"wilcoxon_limitation"
     for extn in ['png', 'pdf']:
@@ -482,12 +491,12 @@ def acq_wilcoxon_and_rmse(df_all, op_dir, remove_seed_step=True, min_sample_for_
 
     # make a common plot as well
     plt.clf()
-    fig = plt.figure(figsize=(14, 8))
+    fig = plt.figure(figsize=(14, 5))
 
     ax_err = fig.add_subplot(122)
-    ax_err.set_title(f"RMSE")
+    ax_err.set_title(f"RMSE",fontsize='16')
     ax_stat = fig.add_subplot(121)
-    ax_stat.set_title(f"p-val (greater, min. sample={min_sample_for_stat}), Wilcoxon signed-rank test")
+    ax_stat.set_title(f"p-val (greater, min. sample={min_sample_for_stat}), Wilcoxon signed-rank test",fontsize='16')
     linestyle = {200: "-", 500: "--"}
     for batch_size in batch_sizes:
         overall_df_b = overall_df.query(f"batch_size=={batch_size}")
@@ -508,8 +517,18 @@ def acq_wilcoxon_and_rmse(df_all, op_dir, remove_seed_step=True, min_sample_for_
         valid_lines = [ line for line in ax.lines if "_"!=line._label[0]]
         ax.legend(handles=[(line_hand, point_hand) for line_hand, point_hand in zip(valid_lines, handles)],
                   labels=labels, title=ax.legend_.get_title().get_text(), handlelength=3)
-    plt.legend()
-    fig.suptitle(f"Comparison to random, avg. over datasets & pipelines")
+        ax.set_xlabel(ax.get_xlabel(), fontsize=16)
+        ax.set_ylabel(ax.get_ylabel(), fontsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        # ax.legend(fontsize=16)
+        # plt.setp(ax.get_legend().get_texts(), fontsize='16')  # for legend text
+        # plt.setp(ax.get_legend().get_title(), fontsize='16')  # for legend title
+    plt.setp(ax_err.get_legend().get_texts(), fontsize='14')  # for legend text
+    plt.setp(ax_err.get_legend().get_title(), fontsize='14')  # for legend title
+    plt.setp(ax_stat.get_legend().get_texts(), fontsize='14')  # for legend text
+    plt.setp(ax_stat.get_legend().get_title(), fontsize='14')  # for legend title
+
+    fig.suptitle(f"Comparison to random, avg. over datasets & pipelines",fontsize='16')
     fname = f"acq_wilcoxon_rmse_common"
     for extn in ['png', 'pdf']:
         fig.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
@@ -601,18 +620,24 @@ def pdp(df_results, op_dir):
 
     # finally plot, phew!
     fig, axs = plt.subplots(1, figsize=figsize)
-    axs.set_title("Expected marginal rel. improve. in F1-macro, over random, for a prediction pipeline")
+    axs.set_title("Expected marginal rel. improve. in F1-macro, over random, for a prediction pipeline",fontsize=16)
     temp_df['mask'] = [1 if r['QS'][1]=='random' else 0 for _, r in temp_df.iterrows()]
     sns.barplot(data=temp_df.query('mask==1'), x='train size bin', y='rel. improve. in F1 macro', hue='pipeline',
                 hue_order=['LinearSVC-wordvecs', 'LinearSVC-USE', 'LinearSVC-MPNet', 'RF-wordvecs',
                            'RF-USE', 'RF-MPNet', 'RoBERTa'],
                 ax=axs)
+    axs.set_xlabel(axs.get_xlabel(), fontsize=16)
+    axs.set_ylabel(axs.get_ylabel(), fontsize=16)
+    axs.tick_params(axis='both', which='major', labelsize=14)
+    # axs.legend(fontsize=16)
+    plt.setp(axs.get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(axs.get_legend().get_title(), fontsize='16')  # for legend title
     for extn in ['png', 'pdf']:
         fig.savefig(f"{op_dir}/pipeline_incremental_train_size_bins.{extn}", bbox_inches='tight')
 
     # also wrt just QS
     fig, axs = plt.subplots(1, figsize=figsize)
-    axs.set_title("Expected marginal rel. improve. in F1-macro, over random, for query strategies")
+    axs.set_title("Expected marginal rel. improve. in F1-macro, over random, for query strategies",fontsize=16)
     temp_df['mask'] = [1 if r['QS'][1] == 'random' else 0 for _, r in temp_df.iterrows()]
     qsb_df = temp_df.query('mask==1')
     qsb_df['QS, batch size'] = [f"{r['QS']}, {r['batch_size']}" for _, r in qsb_df.iterrows()]
@@ -627,14 +652,26 @@ def pdp(df_results, op_dir):
                 "('real', 'random'), 500": '#F88379' }
     sns.barplot(data=qsb_df, x='train size bin', y='rel. improve. in F1 macro', hue='QS, batch size', ax=axs,
                 palette=palette)
+    axs.set_xlabel(axs.get_xlabel(), fontsize=16)
+    axs.set_ylabel(axs.get_ylabel(), fontsize=16)
+    axs.tick_params(axis='both', which='major', labelsize=14)
+    # axs.legend(fontsize=16)
+    plt.setp(axs.get_legend().get_texts(), fontsize='14')  # for legend text
+    plt.setp(axs.get_legend().get_title(), fontsize='14')  # for legend title
     for extn in ['png', 'pdf']:
         fig.savefig(f"{op_dir}/acq_incremental_train_size_bins.{extn}", bbox_inches='tight')
 
     # just for BERT but with all acq. against margin
     fig, axs = plt.subplots(1, figsize=figsize)
-    axs.set_title("Expected marginal rel. improve. in F1-macro, for RoBERT, against 'margin' query strategy")
+    axs.set_title("Expected marginal rel. improve. in F1-macro, for RoBERT, against 'margin' query strategy",fontsize=16)
     temp_df['mask'] = [1 if r['QS'][1] == 'margin' and r['pipeline']=='RoBERTa' else 0 for _, r in temp_df.iterrows()]
     sns.barplot(data=temp_df.query('mask==1'), x='train size bin', y='rel. improve. in F1 macro', hue='QS', ax=axs)
+    axs.set_xlabel(axs.get_xlabel(), fontsize=16)
+    axs.set_ylabel(axs.get_ylabel(), fontsize=16)
+    axs.tick_params(axis='both', which='major', labelsize=14)
+    # axs.legend(fontsize=16)
+    plt.setp(axs.get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(axs.get_legend().get_title(), fontsize='16')  # for legend title
     for extn in ['png', 'pdf']:
         fig.savefig(f"{op_dir}/BERT_acq_incremental_train_size_bins.{extn}", bbox_inches='tight')
 
@@ -668,22 +705,27 @@ def avg_acc(df_all, op_dir, remove_seed_step=True):
     if remove_seed_step:
         df_all = df_all.query('iter_idx != -1')
 
-    figsize = (10, 6)
+    figsize = (6, 4)
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
         os.makedirs(op_dir)
 
     # common
     # df_all['pipeline'] = ["RoBERTa" if i == 'BERT' else f"{i}_{j}" for i, j in
     #                           zip(top_combos['clf'], top_combos['rep'])]
-    fig = plt.figure()
+    fig = plt.figure(figsize = (8, 6))
     ax = fig.add_subplot(111)
     temp_df = df_all.groupby(by=['train_size', 'batch_size', 'clf', 'rep', 'dataset'], as_index=False).agg(
         score_var=pd.NamedAgg(column='score', aggfunc=np.var))
     # sns.set_palette("PuBuGn_d")
     # sns.lineplot(data=temp_df, x='train_size', y='score_var', hue='batch_size', marker='o', ax=ax, palette="tab10")
     sns.lineplot(data=temp_df, x='train_size', y='score_var', hue='batch_size', marker='o', ax=ax, palette="tab10")
-    ax.set_ylabel(f'Expected var. of F1 macro')
-    ax.set_title(f'Expected var. of F1 macro scores')
+    ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
+    ax.set_title(f'Expected var. of F1 macro scores', fontsize=16)
+    ax.set_xlabel(ax.get_xlabel(), fontsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    # ax.legend(ax.get_legend, fontsize=16)
+    plt.setp(ax.get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(ax.get_legend().get_title(), fontsize='16')  # for legend title
     fname = f"avg_score_common"
     for extn in ['png', 'pdf']:
         plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
@@ -800,7 +842,7 @@ if __name__ == "__main__":
 
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
-    avg_acc(df_all_both_batches, op_dir=f"{RESULTS_DIR}/stat_tests", remove_seed_step=True)
+    avg_acc(df_all_both_batches, op_dir=f"{RESULTS_DIR}/stat_tests", remove_seed_step=False)
     # best_combination(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/misc")
 
     # acq_wilcoxon_and_rmse(df_all=df_all_both_batches,
