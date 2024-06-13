@@ -745,6 +745,7 @@ def avg_acc(df_all, op_dir, remove_seed_step=True):
 def get_auc(grp_df):
     temp_df = grp_df.groupby(by=['train_size', 'clf', 'rep', 'acq_name'], as_index=False).\
         agg(avg_score=pd.NamedAgg(column='score', aggfunc='mean'))
+    print('Get AUC, temp_df\n', temp_df)
     res = auc(temp_df['train_size'], temp_df['avg_score'])
     return pd.Series({'partial_auc': res})
 
@@ -798,6 +799,86 @@ def best_combination(df_all, num_train_bins, op_dir):
     overall_side_df.columns = ['train size', 'pipeline', 'QS', 'AUC', 'pipeline', 'QS', 'AUC']
     overall_side_df.to_latex(f"{op_dir}/top_combos_side_by_side.txt", index=False)
 
+
+def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='relative'):
+    if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
+        os.makedirs(op_dir)
+    # print(df_all.head())
+    # print(df_all.tail())
+    bin_edges = np.linspace(0, 5000, num_train_bins + 1)
+    bin_dict = dict([(i + 1, f"({bin_edges[i]:.2f}-{bin_edges[i + 1]:.2f}]") for i in range(num_train_bins)])
+    print(bin_dict)
+    bin_idxs = np.digitize(df_all['train_size'], bin_edges, right=True)
+    bin_names = [bin_dict[i] for i in bin_idxs]
+    df_all['train_size_bin'] = bin_names
+    print(df_all.head())
+    print(df_all.tail())
+    bin_list = []
+    # subplot_list = [211, 212, 221, 222]
+    # fig = plt.figure(figsize=(15, 10))
+    fig, axn = plt.subplots(1, 4, sharex=True, sharey=True,figsize=(20, 6))
+    fig.suptitle(f"Relative improvement in AUC over random", fontsize=18)
+    cbar_ax = fig.add_axes([.91, .3, .015, .4])
+
+    for idx, ax in enumerate(axn.flat): #bin_idx, bin_name in bin_dict.items():
+        bin_name = bin_dict[idx+1]
+        bin_list.append(bin_name)
+        print('=====', bin_list)
+        df_bin = df_all[df_all['train_size_bin'].isin(bin_list)].copy()
+        print(df_bin.shape)
+        df_bin = df_bin.groupby(by=['clf', 'rep', 'acq_name'], as_index=False).apply(get_auc)
+        df_bin['pipeline'] = [f"{r['clf']}-{r['rep']}" if r['clf'] != 'BERT' else 'RoBERTa' for _, r in
+                              df_bin.iterrows()]
+        df_bin.rename(columns={'partial_auc': 'AUC', 'acq_name': 'QS'}, inplace=True)
+        # print(df_bin)
+        df_bin['AUC_random'] = [
+            df_bin[(df_bin['pipeline'] == r['pipeline']) & (df_bin['QS'] == 'random')]['AUC'].values[0]
+            for _, r in df_bin.iterrows()]
+        if diff_type!='relative':
+            df_bin['nr_r_diff'] = [r['AUC'] - r['AUC_random'] for _, r in df_bin.iterrows()]
+            # print(df_bin['nr_r_diff'])
+        else:
+            df_bin['nr_r_diff'] = [(r['AUC'] - r['AUC_random'])/r['AUC_random'] for _, r in df_bin.iterrows()]
+        df_bin = df_bin[df_bin['QS']!='random']
+        print(df_bin)
+        # fig = plt.figure(figsize=(8, 6))
+        # ax = fig.add_subplot(subplot_list[idx])
+        df_bin = df_bin.pivot(index='pipeline', columns='QS', values='nr_r_diff')
+        sns.heatmap(data=df_bin, cmap="PiYG", vmax=0.05, vmin=-0.05, annot=True,
+                    ax=ax, cbar= idx == 0, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
+        # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
+        bin_max = int(bin_name.split('-')[1].split('.')[0])
+        ax.set_title(f'Train size: {bin_max}', fontsize=16)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=16)
+        if idx in [0]:
+            ax.set_ylabel('Prediction Pipeline', fontsize=16)
+        else:
+            ax.set_ylabel('')
+        # if idx in [2, 3]:
+        #     ax.set_xlabel('QS', fontsize=16)
+        # else:
+        #     ax.set_xlabel('')
+
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        # # ax.legend(ax.get_legend, fontsize=16)
+        # plt.setp(ax.get_legend().get_texts(), fontsize='16')  # for legend text
+        # plt.setp(ax.get_legend().get_title(), fontsize='16')  # for legend title
+        # fname = f"auc_{bin_name}"
+        # for extn in ['png']:#, 'pdf']:
+        #     plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+        # plt.clf()
+    fig.tight_layout(rect=[0, 0, 0.9, 1])
+    fname = f"auc_heatmap"
+    for extn in ['png' , 'pdf','svg']:
+        plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+    plt.clf()
+
+    # best_df = df_all.groupby(by=['train size bin', 'clf', 'rep', 'acq_name'], as_index=False).apply(get_auc)
+    # # best_df.groupby(by=['train size bin'], as_index=False).agg(rank=pd.NamedAgg(column='partial_auc', aggfunc='rank'))
+    # best_df['rank'] =  best_df.groupby(by=['train size bin'], as_index=False)['partial_auc'].rank(ascending=False, method='dense')
+
+
+
 if __name__ == "__main__":
     pass
     # result_df, aggr_df = collate_data(dirname=r'/media/aghose/DATA/sources/active_learning_baselines_with_data/'
@@ -842,7 +923,9 @@ if __name__ == "__main__":
 
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
-    avg_acc(df_all_both_batches, op_dir=f"{RESULTS_DIR}/stat_tests", remove_seed_step=False)
+    auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
+                                      diff_type='relative')
+    # # avg_acc(df_all_both_batches, op_dir=f"{RESULTS_DIR}/stat_tests", remove_seed_step=False)
     # best_combination(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/misc")
 
     # acq_wilcoxon_and_rmse(df_all=df_all_both_batches,
