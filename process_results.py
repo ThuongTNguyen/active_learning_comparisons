@@ -28,6 +28,20 @@ acq_fn_name_map = {'CAL.acquire': 'cal',
                    'acq_margin': 'margin',
                    'acq_random': 'random'}
 
+clf_name_map = {'LinearSVC': 'LinSVC',
+                'RF': 'RF',
+                'BERT': 'RoBERTa'}
+
+rep_name_map = {'MPNet': 'MP',
+                'USE': 'USE',
+                'wordvecs': 'WV',
+                'BERT': 'RoBERTa'}
+
+eff_size_map = {200: 500, 400: 500, 600: 500, 800: 1000, 1000: 1000, 1200: 1000, 1400: 1500, 1600: 1500,
+                   1800: 2000, 2000: 2000, 2200: 2000, 2400: 2500, 2600: 2500, 2800: 3000, 3000: 3000, 3200: 3000,
+                   3400: 3500, 3600: 3500, 3800: 4000, 4000: 4000, 4200: 4000, 4400: 4500, 4600: 4500,
+                   4800: 5000, 5000: 5000}
+eff_size_map.update({i:i for i in np.arange(500, 5001, 500)})
 
 def dirname_parse(pathname, name_type='BERT'):
     """
@@ -826,6 +840,8 @@ def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='
         print('=====', bin_list)
         df_bin = df_all[df_all['train_size_bin'].isin(bin_list)].copy()
         print(df_bin.shape)
+        #TODO: Need to fix the auc calculation: CHANGE from average F1 -> compute AUC -> compute relative improv. AUC
+        # TO compute AUC per trial, batch size, dataset, pipeline-> get relative improv AUC -> average
         df_bin = df_bin.groupby(by=['clf', 'rep', 'acq_name'], as_index=False).apply(get_auc)
         df_bin['pipeline'] = [f"{r['clf']}-{r['rep']}" if r['clf'] != 'BERT' else 'RoBERTa' for _, r in
                               df_bin.iterrows()]
@@ -878,6 +894,85 @@ def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='
     # best_df['rank'] =  best_df.groupby(by=['train size bin'], as_index=False)['partial_auc'].rank(ascending=False, method='dense')
 
 
+def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
+    '''For a given batch/seed size'''
+    if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
+        os.makedirs(op_dir)
+    # Average over trial first
+    df_all.drop(['init', 'ts', 'iter_idx'], axis=1, inplace=True)
+    # print(df_all.shape)
+    # print(df_all.head(5))
+    df_all = df_all.groupby(by=['dataset', 'batch_size', 'seed_size', 'acq_name', 'clf', 'rep','train_size'], as_index=False). \
+        agg({'score': 'mean'}) #(avg_score=pd.NamedAgg(column='score', aggfunc='mean'))
+    # print(df_all[(df_all['dataset']=='agnews') & (df_all['train_size']==200)])
+
+    # compute relative improvement F1
+    rel_f1 = []
+    f1_random = []
+    for _, r in df_all.iterrows():
+        temp_f1_random = df_all[(df_all['dataset']==r['dataset']) &
+                                (df_all['batch_size']==r['batch_size']) &
+                                (df_all['seed_size']==r['seed_size']) &
+                                (df_all['acq_name']=='random') &
+                                (df_all['clf']==r['clf']) &
+                                (df_all['rep']==r['rep']) &
+                                (df_all['train_size']==r['train_size'])]['score'].values[0]
+        f1_random.append(temp_f1_random)
+        rel_f1.append(100*(r['score']-temp_f1_random)/temp_f1_random)
+    df_all['rel_improv'] = rel_f1
+    df_all['F1_random'] = f1_random
+    # print('random 1\n', df_all[(df_all['dataset']=='agnews') & (df_all['clf']=='BERT') &(df_all['acq_name'] == 'random')].head(5))
+    # print('random 2\n',
+    #       df_all[(df_all['dataset'] == 'sst2') & (df_all['clf'] == 'RF') & (df_all['rep'] == 'wordvecs') &(df_all['acq_name'] == 'random')].tail(5))
+
+    # Rename clf, get pipeline names, effective train sizes
+    df_all['clf'] = df_all['clf'].map(clf_name_map)
+    df_all['rep'] = df_all['rep'].map(rep_name_map)
+    df_all['eff_train_size'] = df_all['train_size'].map(eff_size_map)
+    df_all.rename(columns={'acq_name': 'QS'}, inplace=True)
+    df_all['pipeline'] = [f"{r['clf']}-{r['rep']}" if r['clf'] != 'RoBERTa' else 'RoBERTa' for _, r in
+                          df_all.iterrows()]
+    # print(df_all.head())
+    # print(df_all.tail())
+
+    fig, axn = plt.subplots(1, num_plots, sharex=True, sharey=True,figsize=(20, 6))
+    fig.suptitle(f"Relative improvement in F1-macro over random", fontsize=18)
+    cbar_ax = fig.add_axes([.91, .3, .015, .4])
+    eff_size_plot_map = {3: [2000, 3500, 5000],
+                        4: [1500, 2500, 3500, 5000]}
+    eff_size_list = eff_size_plot_map[num_plots]
+    for idx, ax in enumerate(axn.flat): #bin_idx, bin_name in bin_dict.items():
+        temp_eff_size = eff_size_list[idx]
+        print('===== size', temp_eff_size)
+        df_size = df_all[df_all['eff_train_size']==temp_eff_size].copy()
+        print(df_size.shape)
+        print(df_size)
+        df_size = df_size.groupby(by=['pipeline', 'QS'], as_index=False).agg({'rel_improv': 'mean'})
+        df_size = df_size[df_size['QS']!='random']
+
+        print('AFTER avg \n', df_size)
+        # fig = plt.figure(figsize=(8, 6))
+        # ax = fig.add_subplot(subplot_list[idx])
+        vmax = max(-df_size['rel_improv'].min(), df_size['rel_improv'].max())
+        df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
+        sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=True,
+                    ax=ax, cbar= idx == 0, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
+        # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
+        # bin_max = int(bin_name.split('-')[1].split('.')[0])
+        ax.set_title(f'Train size: {temp_eff_size}', fontsize=16)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=16)
+        if idx in [0]:
+            ax.set_ylabel('Prediction Pipeline', fontsize=16)
+        else:
+            ax.set_ylabel('')
+
+        ax.tick_params(axis='both', which='major', labelsize=14)
+    fig.tight_layout(rect=[0, 0, 0.9, 1])
+    fname = f"rel_improv_f1"
+    for extn in ['png' , 'pdf','svg']:
+        plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+    plt.clf()
+
 
 if __name__ == "__main__":
     pass
@@ -898,9 +993,11 @@ if __name__ == "__main__":
     #              non_BERT_dirname=r'scratch/current_results/final_non_BERT_seed_500_batch_size_500_iters_9',
     #              op_dir=f"{RESULTS_DIR}/collated", name_suffix='500')
 
-    for b in [200, 500]:
-        df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
-        df_aggr_results = pd.read_csv(f"{RESULTS_DIR}/collated/aggr_data_{b}.csv")
+    # for b in [200, 500]:
+    #     df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
+    #     metric = 'F1'
+
+        # df_aggr_results = pd.read_csv(f"{RESULTS_DIR}/collated/aggr_data_{b}.csv")
         # avg_acc(df_all_results, op_dir=f"{RESULTS_DIR}/stat_tests")
         # datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
@@ -923,8 +1020,12 @@ if __name__ == "__main__":
 
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
-    auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
-                                      diff_type='relative')
+    relative_improv_non_random_vs_random(df_all_both_batches,
+                                         op_dir=f"{RESULTS_DIR}/rel_improv_f1",
+                                         num_plots=4)
+    # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
+    #                                   diff_type='relative')
+
     # # avg_acc(df_all_both_batches, op_dir=f"{RESULTS_DIR}/stat_tests", remove_seed_step=False)
     # best_combination(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/misc")
 
