@@ -935,13 +935,18 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
     # print(df_all.head())
     # print(df_all.tail())
 
-    fig, axn = plt.subplots(1, num_plots, sharex=True, sharey=True,figsize=(20, 6))
-    fig.suptitle(f"Relative improvement in F1-macro over random", fontsize=18)
-    cbar_ax = fig.add_axes([.91, .3, .015, .4])
+    fig, axn = results_utils.rel_improv_plot_template(n_heatmaps=num_plots)
+    print('axes template', axn)
+    # fig, axn = plt.subplots(1, num_plots, sharex=True, sharey=True,figsize=(20, 6))
+    # fig.suptitle(f"Relative improvement in F1-macro over random", fontsize=18)
+    # cbar_ax = fig.add_axes([.91, .3, .015, .4])
     eff_size_plot_map = {3: [2000, 3500, 5000],
                         4: [1500, 2500, 3500, 5000]}
     eff_size_list = eff_size_plot_map[num_plots]
-    for idx, ax in enumerate(axn.flat):
+    heatmap_axes = {i: axn[i] for i in range(num_plots)}
+    vmax = 0
+    for idx, ax in heatmap_axes.items():
+        print('idx, size list', idx, eff_size_list)
         temp_eff_size = eff_size_list[idx]
         print('===== size', temp_eff_size)
         df_size = df_all[df_all['eff_train_size']==temp_eff_size].copy()
@@ -951,10 +956,10 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
         df_size = df_size[df_size['QS']!='random']
 
         print('AFTER avg \n', df_size)
-        vmax = max(-df_size['rel_improv'].min(), df_size['rel_improv'].max())
+        vmax = max(vmax, max(-df_size['rel_improv'].min(), df_size['rel_improv'].max()))
         df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
         sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=True,
-                    ax=ax, cbar= idx == 0, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
+                    ax=ax, cbar= idx == num_plots-1) #, cbar_ax=None if idx <num_plots-1 else cbar_ax)  # cmap="crest"
         # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
         # bin_max = int(bin_name.split('-')[1].split('.')[0])
         ax.set_title(f'Train size: {temp_eff_size}', fontsize=16)
@@ -965,24 +970,24 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
             ax.set_ylabel('')
 
         ax.tick_params(axis='both', which='major', labelsize=14)
-    fig.tight_layout(rect=[0, 0, 0.9, 1])
-    fname = f"rel_improv_f1"
-    for extn in ['png' , 'pdf','svg']:
-        plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
-    plt.clf()
+    # fig.tight_layout(rect=[0, 0, 0.9, 1])
+    # fname = f"rel_improv_f1"
+    # for extn in ['png' , 'pdf','svg']:
+    #     plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+    # plt.clf()
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
     sizes = np.arange(500, 5001, 500)
     # df_pipeline_sizes = df_all.groupby(by=['pipeline','eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     # print(df_pipeline_sizes)
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
-    sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=ax1)
+    sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
 
     df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
-    sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=ax2)
+    sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
 
-    fname = f"rel_improv_f1_indiv_QS_pipeline"
-    for extn in ['png', 'pdf']:
+    fname = f"all_rel_improv_f1"
+    for extn in ['png', 'pdf','svg']:
         plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
     plt.clf()
 

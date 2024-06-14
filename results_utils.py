@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import string
 import seaborn as sns; sns.set()
 
 def get_plot_template(title=None, return_name_position_map=False):
@@ -74,6 +75,7 @@ def get_plot_template(title=None, return_name_position_map=False):
     else:
         return fig, axes
 
+
 def demo_usage_plot_template():
 
     fig, axes = get_plot_template(title="random plots")
@@ -92,5 +94,76 @@ def demo_usage_plot_template():
 
     plt.savefig(f'scratch/gridspec.png', bbox_inches='tight')
 
+
+def rel_improv_plot_template(n_heatmaps=3):
+    annot_font_size = 20
+    fig = plt.figure( figsize=(12, 12),constrained_layout=True)
+
+    count = 0
+    axes = dict()
+    heights = [1, 0.1, 1, 0.1]
+    gs0 = fig.add_gridspec(nrows=4, ncols=1, height_ratios=heights)
+
+    gs00 = gs0[0].subgridspec(1, n_heatmaps)
+    gs01 = gs0[1].subgridspec(1, n_heatmaps)
+    gs02 = gs0[2].subgridspec(1, 2)
+    gs03 = gs0[3].subgridspec(1, 2)
+
+    for a in range(n_heatmaps):
+        if a == 0:
+            ax = fig.add_subplot(gs00[0, a])
+            count_sharey = count
+        else:
+            ax = fig.add_subplot(gs00[0, a], sharey=axes[count_sharey])
+            plt.setp(ax.get_yticklabels(), visible=False)
+        axes[count] = ax
+        count += 1
+
+    splot_caps = [f'({i})' for i in list(string.ascii_lowercase)]
+    count_cap = 0
+    for i in range(n_heatmaps):
+        ax = fig.add_subplot(gs01[0, i])
+        ax.axis("off")
+        textstr = splot_caps[count_cap]
+        ax.annotate(textstr, (0.5, 0.5), xycoords='axes fraction', va='center', fontsize=annot_font_size)
+        count_cap +=1
+
+    for b in range(2):
+        ax = fig.add_subplot(gs02[0, b])
+        axes[count] = ax
+        count += 1
+
+    for i in range(2):
+        ax = fig.add_subplot(gs03[0, i])
+        ax.axis("off")
+        textstr = splot_caps[count_cap]
+        ax.annotate(textstr, (0.5, 0.5), xycoords='axes fraction', va='center', fontsize=annot_font_size)
+        count_cap += 1
+    # plt.show()
+    return fig, axes
+
+
+def demo_usage_rel_improv_plot_template(n_heatmaps=3):
+
+    fig, axes = rel_improv_plot_template(n_heatmaps=n_heatmaps)
+    # we'll randomly pick functions from here to plot
+    print(axes)
+    funcs = [np.sin, np.square, np.exp, np.absolute]
+    for k, ax in axes.items():
+        print(k,ax)
+        print(f"Plotting for axis={k}.")
+        x = np.linspace(0, 20, 100)
+        fn = funcs[np.random.choice(len(funcs))]
+        y = fn(x)
+        ax.plot(x, y, label=f"{fn.__name__}")
+        ax.set_xlabel('x')
+        # ax.set_ylabel('y')
+        # ax.set_title(f"Plot {k}.")
+        ax.legend()
+    plt.show()
+    # plt.savefig(f'scratch/gridspec.png', bbox_inches='tight')
+
 if __name__ =='__main__':
-    demo_usage_plot_template()
+    # demo_usage_plot_template()
+    # rel_improv_plot_template(n_heatmaps=4)
+    demo_usage_rel_improv_plot_template(n_heatmaps=4)
