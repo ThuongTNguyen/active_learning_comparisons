@@ -97,7 +97,7 @@ def demo_usage_plot_template():
 
 def rel_improv_plot_template(n_heatmaps=3):
     annot_font_size = 20
-    fig = plt.figure( figsize=(12, 12),constrained_layout=True)
+    fig = plt.figure( figsize=(18, 12),constrained_layout=True)
 
     count = 0
     axes = dict()

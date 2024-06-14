@@ -984,9 +984,15 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # print(df_pipeline_sizes)
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
     sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
+    axn[num_plots].set_xlabel('train size')
+    axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline')
+    axn[num_plots].set_title('Rel. improvement over random for Prediction Pipelines')
 
     df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
+    axn[num_plots+1].set_xlabel('train size')
+    axn[num_plots + 1].set_ylabel('$\delta$ for a QS')
+    axn[num_plots + 1].set_title('Rel. improvement over random for QSes')
 
     fname = f"all_rel_improv_f1"
     for extn in ['png', 'pdf','svg']:
@@ -1042,7 +1048,7 @@ if __name__ == "__main__":
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
     relative_improv_non_random_vs_random(df_all_both_batches,
                                          op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-                                         num_plots=5, heatmap_annot=False)
+                                         num_plots=5, heatmap_annot=True)
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
 
