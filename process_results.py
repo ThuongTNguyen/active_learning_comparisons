@@ -941,7 +941,7 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
     eff_size_plot_map = {3: [2000, 3500, 5000],
                         4: [1500, 2500, 3500, 5000]}
     eff_size_list = eff_size_plot_map[num_plots]
-    for idx, ax in enumerate(axn.flat): #bin_idx, bin_name in bin_dict.items():
+    for idx, ax in enumerate(axn.flat):
         temp_eff_size = eff_size_list[idx]
         print('===== size', temp_eff_size)
         df_size = df_all[df_all['eff_train_size']==temp_eff_size].copy()
@@ -951,8 +951,6 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
         df_size = df_size[df_size['QS']!='random']
 
         print('AFTER avg \n', df_size)
-        # fig = plt.figure(figsize=(8, 6))
-        # ax = fig.add_subplot(subplot_list[idx])
         vmax = max(-df_size['rel_improv'].min(), df_size['rel_improv'].max())
         df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
         sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=True,
@@ -970,6 +968,21 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
     fig.tight_layout(rect=[0, 0, 0.9, 1])
     fname = f"rel_improv_f1"
     for extn in ['png' , 'pdf','svg']:
+        plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+    plt.clf()
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 6))
+    sizes = np.arange(500, 5001, 500)
+    # df_pipeline_sizes = df_all.groupby(by=['pipeline','eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
+    # print(df_pipeline_sizes)
+    # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
+    sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=ax1)
+
+    df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
+    sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=ax2)
+
+    fname = f"rel_improv_f1_indiv_QS_pipeline"
+    for extn in ['png', 'pdf']:
         plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
     plt.clf()
 
