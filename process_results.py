@@ -349,11 +349,11 @@ def datawise_plots(df, op_dir, suffix=None):
             ax = axes[fig_posn]
             ax.set_xlabel(ax.get_xlabel(), fontsize=22)
             ax.set_ylabel(ax.get_ylabel(), fontsize=22)
-            ax.tick_params(axis='both', which='major', labelsize=18)
+            ax.tick_params(axis='both', which='major', labelsize=22)
             ax.legend(fontsize=22)
 
         fname = f"{ds}_{suffix}" if suffix else f"{ds}"
-        for extn in ['png', 'pdf']:
+        for extn in ['png', 'pdf', 'svg']:
             plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
         plt.clf()
 
@@ -1019,13 +1019,13 @@ if __name__ == "__main__":
     #              non_BERT_dirname=r'scratch/current_results/final_non_BERT_seed_500_batch_size_500_iters_9',
     #              op_dir=f"{RESULTS_DIR}/collated", name_suffix='500')
 
-    # for b in [200, 500]:
-    #     df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
-    #     metric = 'F1'
+    for b in [200, 500]:
+        df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
+        metric = 'F1'
 
         # df_aggr_results = pd.read_csv(f"{RESULTS_DIR}/collated/aggr_data_{b}.csv")
         # avg_acc(df_all_results, op_dir=f"{RESULTS_DIR}/stat_tests")
-        # datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
+        datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
         #                stat_name='val std', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
@@ -1046,9 +1046,9 @@ if __name__ == "__main__":
 
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
-    relative_improv_non_random_vs_random(df_all_both_batches,
-                                         op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-                                         num_plots=5, heatmap_annot=True)
+    # relative_improv_non_random_vs_random(df_all_both_batches,
+    #                                      op_dir=f"{RESULTS_DIR}/rel_improv_f1",
+    #                                      num_plots=5, heatmap_annot=True)
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
 

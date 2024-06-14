@@ -13,7 +13,7 @@ def get_plot_template(title=None, return_name_position_map=False):
         values.
     :return:
     """
-    annot_background_color = '#e3c565'
+    annot_background_color = '#6cb4ee78'#'#e3c565'
     annot_font_size = 30
 
     fig = plt.figure(figsize=(32, 22), constrained_layout=True)
