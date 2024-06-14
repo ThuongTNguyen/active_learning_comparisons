@@ -894,7 +894,7 @@ def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='
     # best_df['rank'] =  best_df.groupby(by=['train size bin'], as_index=False)['partial_auc'].rank(ascending=False, method='dense')
 
 
-def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
+def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_annot=True):
     '''For a given batch/seed size'''
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
         os.makedirs(op_dir)
@@ -941,7 +941,8 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
     # fig.suptitle(f"Relative improvement in F1-macro over random", fontsize=18)
     # cbar_ax = fig.add_axes([.91, .3, .015, .4])
     eff_size_plot_map = {3: [2000, 3500, 5000],
-                        4: [1500, 2500, 3500, 5000]}
+                        4: [1500, 2500, 3500, 5000],
+                         5: [1000, 2000, 3000, 4000, 5000]}
     eff_size_list = eff_size_plot_map[num_plots]
     heatmap_axes = {i: axn[i] for i in range(num_plots)}
     vmax = 0
@@ -958,8 +959,9 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4):
         print('AFTER avg \n', df_size)
         vmax = max(vmax, max(-df_size['rel_improv'].min(), df_size['rel_improv'].max()))
         df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
-        sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=True,
-                    ax=ax, cbar= idx == num_plots-1) #, cbar_ax=None if idx <num_plots-1 else cbar_ax)  # cmap="crest"
+        sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=heatmap_annot,
+                    ax=ax, cbar= idx == num_plots-1) #, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
+
         # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
         # bin_max = int(bin_name.split('-')[1].split('.')[0])
         ax.set_title(f'Train size: {temp_eff_size}', fontsize=16)
@@ -1040,7 +1042,7 @@ if __name__ == "__main__":
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
     relative_improv_non_random_vs_random(df_all_both_batches,
                                          op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-                                         num_plots=4)
+                                         num_plots=5, heatmap_annot=False)
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
 
