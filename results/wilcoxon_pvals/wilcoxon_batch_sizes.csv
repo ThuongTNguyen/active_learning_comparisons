@@ -1,0 +1,14 @@
+test_name,test_type,alternative,wcx_stat,pval
+all,batch_seed_size,two-sided,9.0,0.064453125
+LinSVC-MP,batch_seed_size,two-sided,26.0,0.921875
+LinSVC-USE,batch_seed_size,two-sided,19.0,0.431640625
+LinSVC-WV,batch_seed_size,two-sided,13.0,0.16015625
+RF-MP,batch_seed_size,two-sided,10.0,0.083984375
+RF-USE,batch_seed_size,two-sided,10.0,0.083984375
+RF-WV,batch_seed_size,two-sided,19.0,0.431640625
+RoBERTa,batch_seed_size,two-sided,23.0,0.6953125
+cal,batch_seed_size,two-sided,13.0,0.16015625
+dal,batch_seed_size,two-sided,7.0,0.037109375
+margin,batch_seed_size,two-sided,27.0,1.0
+random,batch_seed_size,two-sided,10.0,0.083984375
+real,batch_seed_size,two-sided,24.0,0.76953125

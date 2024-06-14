@@ -1,0 +1,13 @@
+test_name,test_type,alternative,wcx_stat,pval
+all,nr_vs_r,less,2.0,0.0029296875
+LinSVC-MP,nr_vs_r,less,0.0,0.0009765625
+LinSVC-USE,nr_vs_r,less,0.0,0.0009765625
+LinSVC-WV,nr_vs_r,less,0.0,0.0009765625
+RF-MP,nr_vs_r,less,0.0,0.0009765625
+RF-USE,nr_vs_r,less,0.0,0.0009765625
+RF-WV,nr_vs_r,less,29.0,0.5771484375
+RoBERTa,nr_vs_r,less,55.0,1.0
+cal,nr_vs_r,less,0.0,0.0009765625
+dal,nr_vs_r,less,0.0,0.0009765625
+margin,nr_vs_r,less,34.0,0.75390625
+real,nr_vs_r,less,29.0,0.5771484375
