@@ -349,11 +349,11 @@ def datawise_plots(df, op_dir, suffix=None):
             ax = axes[fig_posn]
             ax.set_xlabel(ax.get_xlabel(), fontsize=22)
             ax.set_ylabel(ax.get_ylabel(), fontsize=22)
-            ax.tick_params(axis='both', which='major', labelsize=18)
+            ax.tick_params(axis='both', which='major', labelsize=22)
             ax.legend(fontsize=22)
 
         fname = f"{ds}_{suffix}" if suffix else f"{ds}"
-        for extn in ['png', 'pdf']:
+        for extn in ['png', 'pdf', 'svg']:
             plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
         plt.clf()
 
@@ -984,9 +984,15 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # print(df_pipeline_sizes)
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
     sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
+    axn[num_plots].set_xlabel('train size')
+    axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline')
+    axn[num_plots].set_title('Rel. improvement over random for Prediction Pipelines')
 
     df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
+    axn[num_plots+1].set_xlabel('train size')
+    axn[num_plots + 1].set_ylabel('$\delta$ for a QS')
+    axn[num_plots + 1].set_title('Rel. improvement over random for QSes')
 
     fname = f"all_rel_improv_f1"
     for extn in ['png', 'pdf','svg']:
@@ -1094,13 +1100,13 @@ if __name__ == "__main__":
     #              non_BERT_dirname=r'scratch/current_results/final_non_BERT_seed_500_batch_size_500_iters_9',
     #              op_dir=f"{RESULTS_DIR}/collated", name_suffix='500')
 
-    # for b in [200, 500]:
-    #     df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
-    #     metric = 'F1'
+    for b in [200, 500]:
+        df_all_results = pd.read_csv(f"{RESULTS_DIR}/collated/all_data_{b}.csv")
+        metric = 'F1'
 
         # df_aggr_results = pd.read_csv(f"{RESULTS_DIR}/collated/aggr_data_{b}.csv")
         # avg_acc(df_all_results, op_dir=f"{RESULTS_DIR}/stat_tests")
-        # datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
+        datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
         #                stat_name='val std', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
@@ -1121,6 +1127,7 @@ if __name__ == "__main__":
 
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
+
     wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
     # relative_improv_non_random_vs_random(df_all_both_batches.copy(),
     #                                      op_dir=f"{RESULTS_DIR}/rel_improv_f1",
