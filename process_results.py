@@ -1027,29 +1027,40 @@ def wilcoxon_NR_R(df_all,op_dir):
     # average each subgroup in small size
     df_all = df_all.groupby(by=['dataset', 'bs', 'QS', 'pipeline', 'eff_train_size'], as_index=False). \
         agg({'score': 'mean'})
-    df_bs = df_all.pivot_table(index=['eff_train_size'], columns=['bs'], values='score',aggfunc='mean')
+    df_bs = df_all.pivot_table(index=['eff_train_size', 'dataset', 'QS', 'pipeline'], columns=['bs'], values='score',
+                       aggfunc='mean').reset_index()
+    # df_bs = df_all.pivot_table(index=['eff_train_size'], columns=['bs'], values='score',aggfunc='mean')
     print(df_bs.head())
 
     # Test whether two batch/seed size have same effect
-    bs_uniq = np.unique(df_all['bs'])
+    bs_uniq = sorted(np.unique(df_all['bs']))
     print(bs_uniq)
     pval_bsize_df = pd.DataFrame(columns = ['test_name','test_type','alternative','wcx_stat', 'pval'])
     alter = 'two-sided'
     test_type = 'batch_seed_size'
     method = 'exact'
-    temp_stat, temp_pval = wilcoxon(x=df_bs[bs_uniq[0]], y=df_bs[bs_uniq[1]], alternative=alter, method=method)
-    pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': ['all'],'test_type': [test_type],
-                                                           'alternative':[alter],'wcx_stat': [temp_stat],
-                                                            'pval':[temp_pval]})], ignore_index=True)
-    for cat in ['pipeline','QS']:
-        for pipe in np.unique(df_all[cat]):
-            temp_df = df_all[df_all[cat] == pipe]
-            temp_df = temp_df.pivot_table(index=['eff_train_size'], columns=['bs'], values='score', aggfunc='mean')
-            print('=========',pipe)
+    # temp_stat, temp_pval = wilcoxon(x=df_bs[bs_uniq[0]], y=df_bs[bs_uniq[1]], alternative=alter, method=method)
+    # pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': ['all'],'test_type': [test_type],
+    #                                                        'alternative':[alter],'wcx_stat': [temp_stat],
+    #                                                         'pval':[temp_pval]})], ignore_index=True)
 
-            temp_stat, temp_pval = wilcoxon(x=temp_df[bs_uniq[0]], y=temp_df[bs_uniq[1]], alternative=alter,method=method)
-            pval_bsize_df = pval_bsize_df.append({'test_name': pipe, 'test_type': test_type, 'alternative': alter,
-                                                  'wcx_stat': temp_stat, 'pval': temp_pval}, ignore_index=True)
+    for alter, cat in itertools.product(['two-sided', 'less', 'greater'], ['pipeline','QS', None]):
+        if cat is None:
+            temp_stat, temp_pval = wilcoxon(x=df_bs[bs_uniq[0]], y=df_bs[bs_uniq[1]], alternative=alter, method=method)
+            pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': ['all'], 'test_type': [test_type],
+                                                                    'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                                    'pval': [temp_pval]})], ignore_index=True)
+
+        else:
+            for cat_val in np.unique(df_all[cat]):
+                temp_df = df_bs[df_bs[cat] == cat_val]
+                print(f'{cat}: {cat_val}')
+
+                temp_stat, temp_pval = wilcoxon(x=temp_df[bs_uniq[0]], y=temp_df[bs_uniq[1]], alternative=alter,method=method)
+                pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': cat_val, 'test_type': [test_type],
+                                                                        'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                                        'pval': [temp_pval]})], ignore_index=True)
+
     fname = f"wilcoxon_batch_sizes.csv"
     pval_bsize_df.to_csv(os.path.join(op_dir, fname), index=False)
     print(pval_bsize_df)
@@ -1068,20 +1079,20 @@ def wilcoxon_NR_R(df_all,op_dir):
                                           'wcx_stat': temp_stat, 'pval': temp_pval}, ignore_index=True)
 
     for cat in ['pipeline', 'QS']:
-        for pipe in np.unique(df_all[cat]):
-            print('=========', pipe)
-            if cat=='QS' and pipe=='random':
+        for cat_val in np.unique(df_all[cat]):
+            print('=========', cat_val)
+            if cat=='QS' and cat_val=='random':
                 continue
 
             if cat == 'QS':
-                temp_df = df_all[df_all[cat].isin([pipe, 'random'])]
+                temp_df = df_all[df_all[cat].isin([cat_val, 'random'])]
             else:
-                temp_df = df_all[df_all[cat] == pipe]
+                temp_df = df_all[df_all[cat] == cat_val]
             # print(temp_df.head())
             temp_df = temp_df.pivot_table(index=['eff_train_size'], columns=['nr_r'], values='score', aggfunc='mean')
 
             temp_stat, temp_pval = wilcoxon(x=temp_df['nr'], y=temp_df['r'], alternative=alter,method=method)
-            pval_nr_r_df = pval_nr_r_df.append({'test_name': pipe, 'test_type': test_type, 'alternative': alter,
+            pval_nr_r_df = pval_nr_r_df.append({'test_name': cat_val, 'test_type': test_type, 'alternative': alter,
                                                   'wcx_stat': temp_stat, 'pval': temp_pval}, ignore_index=True)
     fname = f"wilcoxon_nonrandom_vs_random.csv"
     pval_nr_r_df.to_csv(os.path.join(op_dir, fname), index=False)
@@ -1136,10 +1147,10 @@ if __name__ == "__main__":
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
 
-    # wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
-    relative_improv_non_random_vs_random(df_all_both_batches.copy(),
-                                         op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-                                         num_plots=5, heatmap_annot=True)
+    wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
+    # relative_improv_non_random_vs_random(df_all_both_batches.copy(),
+    #                                      op_dir=f"{RESULTS_DIR}/rel_improv_f1",
+    #                                      num_plots=5, heatmap_annot=True)
 
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
