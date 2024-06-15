@@ -926,9 +926,6 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
         rel_f1.append(100*(r['score']-temp_f1_random)/temp_f1_random)
     df_all['rel_improv'] = rel_f1
     df_all['F1_random'] = f1_random
-    # print('random 1\n', df_all[(df_all['dataset']=='agnews') & (df_all['clf']=='BERT') &(df_all['acq_name'] == 'random')].head(5))
-    # print('random 2\n',
-    #       df_all[(df_all['dataset'] == 'sst2') & (df_all['clf'] == 'RF') & (df_all['rep'] == 'wordvecs') &(df_all['acq_name'] == 'random')].tail(5))
 
     # Rename clf, get pipeline names, effective train sizes
     df_all['clf'] = df_all['clf'].map(clf_name_map)
@@ -939,6 +936,39 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
                           df_all.iterrows()]
     # print(df_all.head())
     # print(df_all.tail())
+
+    # Compute NR-R stats for "ALWAYS ON"
+    always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random', 'avg_rel_improve_geq_random',
+                                               'avg_rel_improve'])
+    df_alwayson = df_all[df_all['QS'] != 'random'].copy()
+    frac = df_alwayson[df_alwayson['rel_improv'] < 0].shape[0] / df_alwayson.shape[0]
+    avg_rel_improve = np.mean(df_alwayson['rel_improv'])
+    avg_rel_improve_geq_random = np.mean(df_alwayson[df_alwayson['rel_improv'] >= 0]['rel_improv'])
+    always_on_stats_df = pd.concat([always_on_stats_df, pd.DataFrame({'test_name': ['all'],
+                                                                      'frac_less_than_random': [frac],
+                                                                      'avg_rel_improve_geq_random': [
+                                                                          avg_rel_improve_geq_random],
+                                                                      'avg_rel_improve': [avg_rel_improve]})],
+                                   ignore_index=True)
+
+    for cat in ['pipeline', 'QS']:
+        for cat_val in np.unique(df_all[cat]):
+            if cat=='QS' and cat_val=='random':
+                continue
+
+            temp_df = df_alwayson[df_alwayson[cat] == cat_val]
+            print('====', cat, cat_val)
+            temp_frac = temp_df[temp_df['rel_improv'] < 0].shape[0] / temp_df.shape[0]
+            temp_avg_rel_improve = np.mean(temp_df['rel_improv'])
+            temp_avg_rel_improve_geq_random = np.mean(temp_df[temp_df['rel_improv'] >= 0]['rel_improv'])
+            always_on_stats_df = pd.concat([always_on_stats_df, pd.DataFrame({'test_name': [cat_val],
+                                                                              'frac_less_than_random': [temp_frac],
+                                                                              'avg_rel_improve_geq_random': [
+                                                                                  temp_avg_rel_improve_geq_random],
+                                                                              'avg_rel_improve': [temp_avg_rel_improve]})],
+                                           ignore_index=True)
+    print('ALWAYS ON \n',always_on_stats_df)
+    always_on_stats_df.to_csv(os.path.join(op_dir, 'always_on_stats_before_avg.csv'), index=False)
 
     fig, axn = results_utils.rel_improv_plot_template(n_heatmaps=num_plots)
     print('axes template', axn)
@@ -952,21 +982,21 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     heatmap_axes = {i: axn[i] for i in range(num_plots)}
     vmax = 0
     for idx, ax in heatmap_axes.items():
-        print('idx, size list', idx, eff_size_list)
         temp_eff_size = eff_size_list[idx]
-        print('===== size', temp_eff_size)
         df_size = df_all[df_all['eff_train_size']==temp_eff_size].copy()
-        print(df_size.shape)
-        print(df_size)
         df_size = df_size.groupby(by=['pipeline', 'QS'], as_index=False).agg({'rel_improv': 'mean'})
         df_size = df_size[df_size['QS']!='random']
 
-        print('AFTER avg \n', df_size)
         vmax = max(vmax, max(-df_size['rel_improv'].min(), df_size['rel_improv'].max()))
         df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
         sns.heatmap(data=df_size.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
-                    cmap="PiYG", vmax=vmax, vmin=-vmax, annot=heatmap_annot,
+                    cmap="PiYG", vmax=vmax, vmin=-vmax, annot=heatmap_annot, annot_kws={'fontsize':14},
                     ax=ax, cbar= idx == num_plots-1) #, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
+        if idx == num_plots-1:
+            cbar = ax.collections[0].colorbar
+            # here set the labelsize by 20
+            print(dir(cbar))
+            cbar.ax.tick_params(labelsize=14)
 
         # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
         # bin_max = int(bin_name.split('-')[1].split('.')[0])
@@ -991,16 +1021,22 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
     sns.lineplot(data=df_all.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
                  x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
-    axn[num_plots].set_xlabel('train size')
-    axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline')
-    axn[num_plots].set_title('Rel. improvement over random for Prediction Pipelines')
+    axn[num_plots].set_xlabel('train size', fontsize=16)
+    axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline', fontsize=16)
+    axn[num_plots].set_title('Rel. improvement over random for Prediction Pipelines', fontsize=16)
+    axn[num_plots].tick_params(axis='both', which='major', labelsize=14)
+    plt.setp(axn[num_plots].get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(axn[num_plots].get_legend().get_title(), fontsize='16')  # for legend title
 
     df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     sns.lineplot(data=df_qs_sizes.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
                  x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
-    axn[num_plots+1].set_xlabel('train size')
-    axn[num_plots + 1].set_ylabel('$\delta$ for a QS')
-    axn[num_plots + 1].set_title('Rel. improvement over random for QSes')
+    axn[num_plots+1].set_xlabel('train size', fontsize=16)
+    axn[num_plots + 1].set_ylabel('$\delta$ for a QS', fontsize=16)
+    axn[num_plots + 1].set_title('Rel. improvement over random for QSes', fontsize=16)
+    axn[num_plots + 1].tick_params(axis='both', which='major', labelsize=14)
+    plt.setp(axn[num_plots + 1].get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(axn[num_plots + 1].get_legend().get_title(), fontsize='16')  # for legend title
 
     fname = f"all_rel_improv_f1"
     for extn in ['png', 'pdf','svg']:
@@ -1165,10 +1201,10 @@ if __name__ == "__main__":
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
 
-    wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
-    # relative_improv_non_random_vs_random(df_all_both_batches.copy(),
-    #                                      op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-    #                                      num_plots=5, heatmap_annot=True)
+    # wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
+    relative_improv_non_random_vs_random(df_all_both_batches.copy(),
+                                         op_dir=f"{RESULTS_DIR}/rel_improv_f1",
+                                         num_plots=5, heatmap_annot=True)
 
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
