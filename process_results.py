@@ -1,3 +1,4 @@
+import itertools
 import re, sys, os, pandas as pd, glob, numpy as np, math
 from matplotlib import pyplot as plt
 import seaborn as sns; sns.set()
@@ -36,6 +37,10 @@ rep_name_map = {'MPNet': 'MP',
                 'USE': 'USE',
                 'wordvecs': 'WV',
                 'BERT': 'RoBERTa'}
+
+# preferred display ordering
+pipeline_order = [f"{'-'.join(i)}" for i in list(itertools.product(['LinSVC','RF'], ['WV', 'USE',  'MP'])) +
+                  [('RoBERTa',)]]
 
 eff_size_map = {200: 500, 400: 500, 600: 500, 800: 1000, 1000: 1000, 1200: 1000, 1400: 1500, 1600: 1500,
                    1800: 2000, 2000: 2000, 2200: 2000, 2400: 2500, 2600: 2500, 2800: 3000, 3000: 3000, 3200: 3000,
@@ -959,7 +964,8 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
         print('AFTER avg \n', df_size)
         vmax = max(vmax, max(-df_size['rel_improv'].min(), df_size['rel_improv'].max()))
         df_size = df_size.pivot(index='pipeline', columns='QS', values='rel_improv')
-        sns.heatmap(data=df_size, cmap="PiYG", vmax=vmax, vmin=-vmax, annot=heatmap_annot,
+        sns.heatmap(data=df_size.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
+                    cmap="PiYG", vmax=vmax, vmin=-vmax, annot=heatmap_annot,
                     ax=ax, cbar= idx == num_plots-1) #, cbar_ax=None if idx else cbar_ax)  # cmap="crest"
 
         # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
@@ -983,13 +989,15 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # df_pipeline_sizes = df_all.groupby(by=['pipeline','eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     # print(df_pipeline_sizes)
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
-    sns.lineplot(data=df_all, x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
+    sns.lineplot(data=df_all.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
+                 x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
     axn[num_plots].set_xlabel('train size')
     axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline')
     axn[num_plots].set_title('Rel. improvement over random for Prediction Pipelines')
 
     df_qs_sizes = df_all[df_all['QS']!='random'].copy() #.groupby(by=['QS', 'eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
-    sns.lineplot(data=df_qs_sizes, x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
+    sns.lineplot(data=df_qs_sizes.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
+                 x="eff_train_size", y="rel_improv", hue="QS", ax=axn[num_plots+1])
     axn[num_plots+1].set_xlabel('train size')
     axn[num_plots + 1].set_ylabel('$\delta$ for a QS')
     axn[num_plots + 1].set_title('Rel. improvement over random for QSes')
@@ -1022,7 +1030,7 @@ def wilcoxon_NR_R(df_all,op_dir):
     df_bs = df_all.pivot_table(index=['eff_train_size'], columns=['bs'], values='score',aggfunc='mean')
     print(df_bs.head())
 
-    # Test where two batch/seed size have same effect
+    # Test whether two batch/seed size have same effect
     bs_uniq = np.unique(df_all['bs'])
     print(bs_uniq)
     pval_bsize_df = pd.DataFrame(columns = ['test_name','test_type','alternative','wcx_stat', 'pval'])
@@ -1106,7 +1114,7 @@ if __name__ == "__main__":
 
         # df_aggr_results = pd.read_csv(f"{RESULTS_DIR}/collated/aggr_data_{b}.csv")
         # avg_acc(df_all_results, op_dir=f"{RESULTS_DIR}/stat_tests")
-        datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
+        # datawise_plots(df_all_results, op_dir=r'results/datawise_plots', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
         #                stat_name='val std', suffix=f"{b}")
         # multipop_tests(df_all_results, df_aggr_results, remove_seed_step=True, op_dir=r'results/stat_tests',
@@ -1128,10 +1136,10 @@ if __name__ == "__main__":
     df_all_both_batches = pd.concat([pd.read_csv(f"{RESULTS_DIR}/collated/all_data_200.csv"),
                                      pd.read_csv(f"{RESULTS_DIR}/collated/all_data_500.csv")])
 
-    wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
-    # relative_improv_non_random_vs_random(df_all_both_batches.copy(),
-    #                                      op_dir=f"{RESULTS_DIR}/rel_improv_f1",
-    #                                      num_plots=5, heatmap_annot=False)
+    # wilcoxon_NR_R(df_all_both_batches.copy(), op_dir=f"{RESULTS_DIR}/wilcoxon_pvals")
+    relative_improv_non_random_vs_random(df_all_both_batches.copy(),
+                                         op_dir=f"{RESULTS_DIR}/rel_improv_f1",
+                                         num_plots=5, heatmap_annot=True)
 
     # auc_heatmap_non_random_vs_random(df_all_both_batches, num_train_bins=4, op_dir=f"{RESULTS_DIR}/auc_heatmap",
     #                                   diff_type='relative')
