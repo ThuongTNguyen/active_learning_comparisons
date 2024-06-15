@@ -1009,6 +1009,8 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
 
 
 def wilcoxon_NR_R(df_all,op_dir):
+    method = 'auto'   # change this for accuracy vs speed tradeoff
+
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
         os.makedirs(op_dir)
     # Average over trial first
@@ -1038,7 +1040,7 @@ def wilcoxon_NR_R(df_all,op_dir):
     print(bs_uniq)
     pval_bsize_df = pd.DataFrame(columns = ['test_name','test_type','alternative','wcx_stat', 'pval'])
     test_type = 'batch_seed_size'
-    method = 'exact'
+
 
     for alter, cat in itertools.product(['two-sided', 'less', 'greater'], ['pipeline','QS', None]):
         if cat is None:
@@ -1061,19 +1063,23 @@ def wilcoxon_NR_R(df_all,op_dir):
     pval_bsize_df.to_csv(os.path.join(op_dir, fname), index=False)
     print(pval_bsize_df)
 
-    # Test if NR < R
-    print('===== TEST NR < R')
+    # Test if NR < R, i.e., "Always ON" mode.
+    print('===== TEST NR < R, Always ON mode')
     df_all['nr_r'] = ['nr' if r['QS']!='random' else 'r' for _, r in df_all.iterrows()]
 
-    df_nr_r = df_all.pivot_table(index=['eff_train_size'], columns=['nr_r'], values='score', aggfunc='mean')
+    # NOTE: we can't use QS in the index because QS can be "nr" or "r" but not both, which means one of those cols
+    # will end up with nan.
+    df_nr_r = df_all.pivot_table(index=['eff_train_size','dataset', 'pipeline', 'bs'],
+                                 columns=['nr_r'], values='score', aggfunc='mean').reset_index()
 
     pval_nr_r_df = pd.DataFrame(columns=['test_name', 'test_type', 'alternative', 'wcx_stat', 'pval'])
     alter = 'less'
     test_type = 'nr_vs_r'
-    temp_stat, temp_pval = wilcoxon(x=df_nr_r['nr'], y=df_nr_r['r'], alternative=alter,method=method)
-    pval_nr_r_df = pval_nr_r_df.append({'test_name': 'all', 'test_type': test_type, 'alternative': alter,
-                                          'wcx_stat': temp_stat, 'pval': temp_pval}, ignore_index=True)
 
+    temp_stat, temp_pval = wilcoxon(x=df_nr_r['nr'], y=df_nr_r['r'], alternative=alter,method=method)
+    pval_nr_r_df = pd.concat([pval_nr_r_df, pd.DataFrame({'test_name': ['all'], 'test_type': [test_type],
+                                                          'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                          'pval': [temp_pval]})], ignore_index=True)
     for cat in ['pipeline', 'QS']:
         for cat_val in np.unique(df_all[cat]):
             print('=========', cat_val)
@@ -1082,14 +1088,16 @@ def wilcoxon_NR_R(df_all,op_dir):
 
             if cat == 'QS':
                 temp_df = df_all[df_all[cat].isin([cat_val, 'random'])]
-            else:
-                temp_df = df_all[df_all[cat] == cat_val]
-            # print(temp_df.head())
-            temp_df = temp_df.pivot_table(index=['eff_train_size'], columns=['nr_r'], values='score', aggfunc='mean')
+                temp_df = temp_df.pivot_table(index=['eff_train_size', 'dataset', 'pipeline', 'bs'],
+                                             columns=['nr_r'], values='score', aggfunc='mean').reset_index()
 
+            else:
+                temp_df = df_nr_r[df_nr_r[cat] == cat_val]
             temp_stat, temp_pval = wilcoxon(x=temp_df['nr'], y=temp_df['r'], alternative=alter,method=method)
-            pval_nr_r_df = pval_nr_r_df.append({'test_name': cat_val, 'test_type': test_type, 'alternative': alter,
-                                                  'wcx_stat': temp_stat, 'pval': temp_pval}, ignore_index=True)
+            pval_nr_r_df = pd.concat([pval_nr_r_df, pd.DataFrame({'test_name': [cat_val], 'test_type': [test_type],
+                                                                  'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                                  'pval': [temp_pval]})], ignore_index=True)
+
     fname = f"wilcoxon_nonrandom_vs_random.csv"
     pval_nr_r_df.to_csv(os.path.join(op_dir, fname), index=False)
     print(pval_nr_r_df)
