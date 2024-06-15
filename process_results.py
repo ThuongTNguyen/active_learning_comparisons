@@ -1071,8 +1071,10 @@ def wilcoxon_NR_R(df_all,op_dir):
     # will end up with nan.
     df_nr_r = df_all.pivot_table(index=['eff_train_size','dataset', 'pipeline', 'bs'],
                                  columns=['nr_r'], values='score', aggfunc='mean').reset_index()
-
+    df_nr_r['rel_improve'] = 100. * (df_nr_r['nr'] - df_nr_r['r'])/df_nr_r['r']
     pval_nr_r_df = pd.DataFrame(columns=['test_name', 'test_type', 'alternative', 'wcx_stat', 'pval'])
+    always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random', 'avg_rel_improve_geq_random',
+                                                'avg_rel_improve'])
     alter = 'less'
     test_type = 'nr_vs_r'
 
@@ -1080,6 +1082,15 @@ def wilcoxon_NR_R(df_all,op_dir):
     pval_nr_r_df = pd.concat([pval_nr_r_df, pd.DataFrame({'test_name': ['all'], 'test_type': [test_type],
                                                           'alternative': [alter], 'wcx_stat': [temp_stat],
                                                           'pval': [temp_pval]})], ignore_index=True)
+    frac = np.sum(df_nr_r['nr'] < df_nr_r['r'])/ len(df_nr_r)
+    avg_rel_improve = np.mean(df_nr_r['rel_improve'])
+    avg_rel_improve_geq_random = np.mean(df_nr_r[df_nr_r['r'] <= df_nr_r['nr']]['rel_improve'])
+    always_on_stats_df = pd.concat([always_on_stats_df, pd.DataFrame({'test_name': ['all'],
+                                                            'frac_less_than_random': [frac],
+                                                            'avg_rel_improve_geq_random': [avg_rel_improve_geq_random],
+                                                            'avg_rel_improve': [avg_rel_improve]})], ignore_index=True)
+
+
     for cat in ['pipeline', 'QS']:
         for cat_val in np.unique(df_all[cat]):
             print('=========', cat_val)
@@ -1100,6 +1111,9 @@ def wilcoxon_NR_R(df_all,op_dir):
 
     fname = f"wilcoxon_nonrandom_vs_random.csv"
     pval_nr_r_df.to_csv(os.path.join(op_dir, fname), index=False)
+    always_on_stats_df.to_csv(os.path.join(op_dir, 'always_on_stats.csv'), index=False)
+
+
     print(pval_nr_r_df)
 
 
