@@ -899,6 +899,28 @@ def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='
     # best_df['rank'] =  best_df.groupby(by=['train size bin'], as_index=False)['partial_auc'].rank(ascending=False, method='dense')
 
 
+def friedman_test(df_all, op_dir):
+    df_all['bs'] = [f"({r['batch_size']},{r['seed_size']})" for _, r in df_all.iterrows()]
+    print('===== Friedman test')
+    df_all_nr = df_all[df_all['QS'] !='random']
+    df_all_nr_pipeline = df_all_nr.pivot_table(index=['dataset', 'bs','QS','train_size'],
+                                 columns=['pipeline'], values='rel_improv', aggfunc='mean')#.reset_index()
+
+    pval_df = pd.DataFrame(columns=['test_name',  'friedman_stat', 'pval'])
+    temp_stat, temp_pval = friedmanchisquare(*np.array(df_all_nr_pipeline).T)
+    pval_df = pd.concat([pval_df, pd.DataFrame({'test_name': ['pipeline'], 'friedman_stat': [temp_stat],
+                                                          'pval': [temp_pval]})], ignore_index=True)
+
+    df_all_nr_qs = df_all_nr.pivot_table(index=['dataset', 'bs', 'pipeline', 'train_size'],
+                                                        columns=['QS'], values='rel_improv',
+                                                        aggfunc='mean')#.reset_index()
+    temp_stat, temp_pval = friedmanchisquare(*np.array(df_all_nr_qs).T)
+    pval_df = pd.concat([pval_df, pd.DataFrame({'test_name': ['QS'], 'friedman_stat': [temp_stat],
+                                                'pval': [temp_pval]})], ignore_index=True)
+    fname = f"friedman_pvals_rel_improv.csv"
+    pval_df.to_csv(os.path.join(op_dir, fname), index=False)
+
+
 def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_annot=True):
     '''For a given batch/seed size'''
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
@@ -936,6 +958,9 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
                           df_all.iterrows()]
     # print(df_all.head())
     # print(df_all.tail())
+
+    # Friedman test
+    friedman_test(df_all.copy(), op_dir)
 
     # Compute NR-R stats for "ALWAYS ON"
     always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random', 'avg_rel_improve_geq_random',
