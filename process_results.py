@@ -1033,16 +1033,12 @@ def wilcoxon_NR_R(df_all,op_dir):
     print(df_bs.head())
 
     # Test whether two batch/seed size have same effect
+    # order from small->large so we know what the direction of the test means
     bs_uniq = sorted(np.unique(df_all['bs']))
     print(bs_uniq)
     pval_bsize_df = pd.DataFrame(columns = ['test_name','test_type','alternative','wcx_stat', 'pval'])
-    alter = 'two-sided'
     test_type = 'batch_seed_size'
     method = 'exact'
-    # temp_stat, temp_pval = wilcoxon(x=df_bs[bs_uniq[0]], y=df_bs[bs_uniq[1]], alternative=alter, method=method)
-    # pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': ['all'],'test_type': [test_type],
-    #                                                        'alternative':[alter],'wcx_stat': [temp_stat],
-    #                                                         'pval':[temp_pval]})], ignore_index=True)
 
     for alter, cat in itertools.product(['two-sided', 'less', 'greater'], ['pipeline','QS', None]):
         if cat is None:
