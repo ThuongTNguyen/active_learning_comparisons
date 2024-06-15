@@ -995,7 +995,6 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
         if idx == num_plots-1:
             cbar = ax.collections[0].colorbar
             # here set the labelsize by 20
-            print(dir(cbar))
             cbar.ax.tick_params(labelsize=14)
 
         # ax.set_ylabel(f'Expected var. of F1 macro', fontsize=16)
@@ -1019,7 +1018,7 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # df_pipeline_sizes = df_all.groupby(by=['pipeline','eff_train_size'], as_index=False).agg({'rel_improv': 'mean'})
     # print(df_pipeline_sizes)
     # df_pipeline_sizes = df_pipeline_sizes.pivot(index='eff_train_size', columns='QS', values='rel_improv')
-    sns.lineplot(data=df_all.sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
+    sns.lineplot(data=df_all[df_all['QS']!='random'].sort_values(by='pipeline', key=lambda col: col.map(lambda c: pipeline_order.index(c))),
                  x="eff_train_size", y="rel_improv", hue="pipeline", ax=axn[num_plots])
     axn[num_plots].set_xlabel('train size', fontsize=16)
     axn[num_plots].set_ylabel('$\delta$ for a Prediction Pipeline', fontsize=16)
