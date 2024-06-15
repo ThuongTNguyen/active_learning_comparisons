@@ -1042,6 +1042,23 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
         plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
     plt.clf()
 
+    # fig, ax = plt.figure( figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.lineplot(data=df_all[(df_all['QS'] != 'random') &
+                             (df_all['pipeline'] != 'RoBERTa')].sort_values(by='pipeline', key=lambda col: col.map(
+        lambda c: pipeline_order.index(c))),
+                 x="eff_train_size", y="rel_improv", hue="rep", ax=ax)
+    ax.set_xlabel('train size', fontsize=16)
+    ax.set_ylabel('$\delta$ for a Representation', fontsize=16)
+    ax.set_title('Rel. improvement over random for Representations', fontsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    plt.setp(ax.get_legend().get_texts(), fontsize='16')  # for legend text
+    plt.setp(ax.get_legend().get_title(), fontsize='16')  # for legend title
+    fname = f"rel_improv_f1_representations"
+    for extn in ['png', 'pdf', 'svg']:
+        plt.savefig(f"{op_dir}/{fname}.{extn}", bbox_inches='tight')
+    plt.clf()
+
 
 def wilcoxon_NR_R(df_all,op_dir):
     method = 'auto'   # change this for accuracy vs speed tradeoff
