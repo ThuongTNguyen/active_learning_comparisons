@@ -921,6 +921,48 @@ def friedman_test(df_all, op_dir):
     pval_df.to_csv(os.path.join(op_dir, fname), index=False)
 
 
+def wilcoxon_test_rel_improv(df_all_orig, op_dir):
+    df_all_orig['bs'] = [f"({r['batch_size']},{r['seed_size']})" for _, r in df_all_orig.iterrows()]
+    print('===== Wilcoxon test: batch/seed size')
+    df_all = df_all_orig[df_all_orig['QS'] != 'random'].copy()
+
+    # average each subgroup in small size
+    df_all = df_all.groupby(by=['dataset', 'bs', 'QS', 'pipeline', 'eff_train_size'], as_index=False). \
+        agg({'rel_improv': 'mean'})
+    df_bs = df_all.pivot_table(index=['eff_train_size', 'dataset', 'QS', 'pipeline'], columns=['bs'], values='rel_improv',
+                               aggfunc='mean').reset_index()
+
+    # Test whether two batch/seed size have same effect
+    # order from small->large so we know what the direction of the test means
+    bs_uniq = sorted(np.unique(df_all['bs']))
+    print(bs_uniq)
+    pval_bsize_df = pd.DataFrame(columns=['test_name', 'test_type', 'alternative', 'wcx_stat', 'pval'])
+    test_type = 'batch_seed_size'
+
+    method = 'auto'  # change this for accuracy vs speed tradeoff
+    for alter, cat in itertools.product(['two-sided', 'less', 'greater'], ['pipeline', 'QS', None]):
+        if cat is None:
+            temp_stat, temp_pval = wilcoxon(x=df_bs[bs_uniq[0]], y=df_bs[bs_uniq[1]], alternative=alter, method=method)
+            pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': ['all'], 'test_type': [test_type],
+                                                                    'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                                    'pval': [temp_pval]})], ignore_index=True)
+
+        else:
+            for cat_val in np.unique(df_all[cat]):
+                temp_df = df_bs[df_bs[cat] == cat_val]
+                print(f'{cat}: {cat_val}')
+
+                temp_stat, temp_pval = wilcoxon(x=temp_df[bs_uniq[0]], y=temp_df[bs_uniq[1]], alternative=alter,
+                                                method=method)
+                pval_bsize_df = pd.concat([pval_bsize_df, pd.DataFrame({'test_name': cat_val, 'test_type': [test_type],
+                                                                        'alternative': [alter], 'wcx_stat': [temp_stat],
+                                                                        'pval': [temp_pval]})], ignore_index=True)
+
+    fname = f"wilcoxon_batch_sizes_rel_improv.csv"
+    pval_bsize_df.to_csv(os.path.join(op_dir, fname), index=False)
+    print(pval_bsize_df)
+
+
 def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_annot=True):
     '''For a given batch/seed size'''
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
@@ -961,6 +1003,9 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
 
     # Friedman test
     friedman_test(df_all.copy(), op_dir)
+
+    # Wilcoxon test
+    wilcoxon_test_rel_improv(df_all.copy(), op_dir)
 
     # Compute NR-R stats for "ALWAYS ON"
     always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random',
