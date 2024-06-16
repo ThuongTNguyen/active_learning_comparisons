@@ -963,17 +963,24 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     friedman_test(df_all.copy(), op_dir)
 
     # Compute NR-R stats for "ALWAYS ON"
-    always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random', 'avg_rel_improve_geq_random',
-                                               'avg_rel_improve'])
+    always_on_stats_df = pd.DataFrame(columns=['test_name', 'frac_less_than_random',
+                                               'avg_rel_improve_geq_random', 'std_rel_improve_geq_random',
+                                               'avg_rel_improve','std_rel_improve'])
     df_alwayson = df_all[df_all['QS'] != 'random'].copy()
     frac = df_alwayson[df_alwayson['rel_improv'] < 0].shape[0] / df_alwayson.shape[0]
     avg_rel_improve = np.mean(df_alwayson['rel_improv'])
+    std_rel_improve = np.std(df_alwayson['rel_improv'])
     avg_rel_improve_geq_random = np.mean(df_alwayson[df_alwayson['rel_improv'] >= 0]['rel_improv'])
+    std_rel_improve_geq_random = np.std(df_alwayson[df_alwayson['rel_improv'] >= 0]['rel_improv'])
     always_on_stats_df = pd.concat([always_on_stats_df, pd.DataFrame({'test_name': ['all'],
                                                                       'frac_less_than_random': [frac],
                                                                       'avg_rel_improve_geq_random': [
                                                                           avg_rel_improve_geq_random],
-                                                                      'avg_rel_improve': [avg_rel_improve]})],
+                                                                      'std_rel_improve_geq_random': [
+                                                                          std_rel_improve_geq_random],
+                                                                      'avg_rel_improve': [avg_rel_improve],
+                                                                      'std_rel_improve': [std_rel_improve],
+                                                                      })],
                                    ignore_index=True)
 
     for cat in ['pipeline', 'QS']:
@@ -985,12 +992,17 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
             print('====', cat, cat_val)
             temp_frac = temp_df[temp_df['rel_improv'] < 0].shape[0] / temp_df.shape[0]
             temp_avg_rel_improve = np.mean(temp_df['rel_improv'])
+            temp_std_rel_improve = np.std(temp_df['rel_improv'])
             temp_avg_rel_improve_geq_random = np.mean(temp_df[temp_df['rel_improv'] >= 0]['rel_improv'])
+            temp_std_rel_improve_geq_random = np.std(temp_df[temp_df['rel_improv'] >= 0]['rel_improv'])
             always_on_stats_df = pd.concat([always_on_stats_df, pd.DataFrame({'test_name': [cat_val],
                                                                               'frac_less_than_random': [temp_frac],
                                                                               'avg_rel_improve_geq_random': [
                                                                                   temp_avg_rel_improve_geq_random],
-                                                                              'avg_rel_improve': [temp_avg_rel_improve]})],
+                                                                              'std_rel_improve_geq_random': [
+                                                                                  temp_std_rel_improve_geq_random],
+                                                                              'avg_rel_improve': [temp_avg_rel_improve],
+                                                                              'std_rel_improve': [temp_std_rel_improve]})],
                                            ignore_index=True)
     print('ALWAYS ON \n',always_on_stats_df)
     always_on_stats_df.to_csv(os.path.join(op_dir, 'always_on_stats_before_avg.csv'), index=False)
