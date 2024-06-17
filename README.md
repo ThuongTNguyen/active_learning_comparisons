@@ -10,7 +10,7 @@ The main AL loop is `batch_active_learn()` in `core/al.py`.
 Here are some parameters it accepts:
 
 * `X_L`: can be None, if we want to bootstrap from the unlabeled pool.
-* `y_L`: needs to be None if X_L is None.
+* `y_L`: needs to be None if `X_L` is None.
 * `X_U`: pool of unlabeled instances.
 * `y_U`: we need this for eval, of course, in real-life these are not known.
 * `X_test`: test set, against which to accuracy may be measured.
@@ -18,18 +18,19 @@ Here are some parameters it accepts:
 * `clf_class`: the prediction model's class.
 * `clf_param_grid`: scikit-type param grid for the model selection of the classifier.
 * `transform_class`: can be None, if no transformation is required. This might be needed if your classifier
-needs vectors, but your input X_L is text.
+needs vectors, but your input `X_L` is text.
 * `trf_param_grid`: scikit-type param grid for the transformation, can be None if default
     params are to be used.
-* `acq_fn`: acquisition function or **query strategy**, usually the core of an AL algorithm, should accept current X_L, y_L, X_U, y_U
+* `acq_fn`: **acquisition function** or **query strategy**, usually the core of an AL algorithm, 
+should accept current `X_L`, `y_L`, `X_U`, `y_U`
 * `seed_size`: data to be put into the labelled set before beginning the AL loop
 * `batch_size`: batch size for AL
 * `num_iters`: number of times to active learn, will stop early if we exhaust the unlabeled pool
-* `init_function`: how to pick the initial seed data, accepts X_U, y_U. Needs to return indices in X_U.
-* `model_selector`: how to perform model selection at an iteration, the default is model_selection.select_model()
+* `init_function`: how to pick the initial seed data, accepts `X_U`, `y_U`. Needs to return indices in `X_U`.
+* `model_selector`: how to perform model selection at an iteration, the default is `model_selection.select_model()`
     but this can be a custom function, see `demo.py`.
-* `model_search_type`: if you want to use the in-built model selectors, 'cv' (for cross-validation - expensive) or 
-'val' (use one validation set, cheaper and usually a good compromise).
+* `model_search_type`: if you want to use the in-built model selectors, `cv` (for cross-validation - expensive) or 
+`val` (use one validation set, cheaper and usually a good compromise).
  
 Here's a simple example from `demo.py` (this is `al_demo_1()` in the file), where we perform text classification using scikit's `LinearSVC`, the model
 selection is based on *cross-validation*, over these values for `C`: `[1, 0.01]`, there is a transformation to be
