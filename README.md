@@ -34,7 +34,7 @@ needs vectors, but your input X_L is text.
 Here's a simple example from `demo.py` (this is `al_demo_1()` in the file), where we perform text classification using scikit's `LinearSVC`, the model
 selection is based on *cross-validation*, over these values for `C`: `[1, 0.01]`, there is a transformation to be
 applied via scikit's `CountVectorizer`, and the transformation step has its own parameters - 
-here `'ngram_range': [(1, 1), (1, 3)]`. The acquisition function is random sampling.
+here `'ngram_range': [(1, 1), (1, 3)]`. The acquisition function is *random sampling*.
 
 ```Python
 import numpy as np
