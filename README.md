@@ -63,16 +63,26 @@ al.batch_active_learn(X_L=None, y_L=None, X_U=np.array(X_U), y_U=np.array(y_U),
                       metric=f1_macro, op_dir=r'scratch/demo_al', random_state=10)
 ```
 
-### Citation
-```tex
-@misc{ghose2024fragility,
-      title={On the Fragility of Active Learners}, 
-      author={Abhishek Ghose and Emma Thuong Nguyen},
-      year={2024},
-      eprint={2403.15744},
-      archivePrefix={arXiv},
-      primaryClass={id='cs.LG' full_name='Machine Learning' is_active=True alt_name=None in_archive='cs' is_general=False description='Papers on all aspects of machine learning research (supervised, unsupervised, reinforcement learning, bandit problems, and so on) including also robustness, explanation, fairness, and methodology. cs.LG is also an appropriate primary category for applications of machine learning methods.'}
-}
-```
+[//]: # (### Citation)
+
+[//]: # (```tex)
+
+[//]: # (@misc{ghose2024fragility,)
+
+[//]: # (      title={On the Fragility of Active Learners}, )
+
+[//]: # (      author={Abhishek Ghose and Emma Thuong Nguyen},)
+
+[//]: # (      year={2024},)
+
+[//]: # (      eprint={2403.15744},)
+
+[//]: # (      archivePrefix={arXiv},)
+
+[//]: # (      primaryClass={id='cs.LG' full_name='Machine Learning' is_active=True alt_name=None in_archive='cs' is_general=False description='Papers on all aspects of machine learning research &#40;supervised, unsupervised, reinforcement learning, bandit problems, and so on&#41; including also robustness, explanation, fairness, and methodology. cs.LG is also an appropriate primary category for applications of machine learning methods.'})
+
+[//]: # (})
+
+[//]: # (```)
 **NOTE**: The results reported in the above article were based on the evaluation scores in 
 `results/collated`.
