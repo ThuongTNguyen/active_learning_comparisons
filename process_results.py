@@ -1,4 +1,5 @@
 import itertools
+import json
 import re, sys, os, pandas as pd, glob, numpy as np, math
 from matplotlib import pyplot as plt
 import seaborn as sns; sns.set()
@@ -8,7 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler
 from scipy.stats import friedmanchisquare, wilcoxon
-from sklearn.metrics import auc
+from sklearn.metrics import auc, mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.model_selection import train_test_split
 import results_utils
 
 TEMP_WORKING_DIR = r'scratch/temp'  # these wont be checked in
@@ -899,6 +901,23 @@ def auc_heatmap_non_random_vs_random(df_all, num_train_bins, op_dir, diff_type='
     # best_df['rank'] =  best_df.groupby(by=['train size bin'], as_index=False)['partial_auc'].rank(ascending=False, method='dense')
 
 
+def kendall_w(scores):
+    """
+    :param scores: rows correspond to category levels, e.g., for QS this would be unc. sampling, CAL etc, and the
+        columns correspond to the scores.
+    :return:
+    """
+    if scores.ndim!=2:
+        raise 'scores  matrix must be 2-dimensional'
+    m = scores.shape[0]  # raters/levels
+    n = scores.shape[1]  # items rated
+    score_ranks = np.argsort(scores, axis=1)
+    denom = m**2*(n**3-n)
+    rating_sums = np.sum(score_ranks, axis=0)
+    S = n*np.var(rating_sums)
+    return 12*S/denom
+
+
 def friedman_test(df_all, op_dir):
     df_all['bs'] = [f"({r['batch_size']},{r['seed_size']})" for _, r in df_all.iterrows()]
     print('===== Friedman test')
@@ -906,17 +925,21 @@ def friedman_test(df_all, op_dir):
     df_all_nr_pipeline = df_all_nr.pivot_table(index=['dataset', 'bs','QS','train_size'],
                                  columns=['pipeline'], values='rel_improv', aggfunc='mean')#.reset_index()
 
-    pval_df = pd.DataFrame(columns=['test_name',  'friedman_stat', 'pval'])
+    pval_df = pd.DataFrame(columns=['test_name',  'friedman_stat', 'pval', 'kendall_w'])
     temp_stat, temp_pval = friedmanchisquare(*np.array(df_all_nr_pipeline).T)
+    kendall_w_pipeline = kendall_w(np.array(df_all_nr_pipeline).T)
     pval_df = pd.concat([pval_df, pd.DataFrame({'test_name': ['pipeline'], 'friedman_stat': [temp_stat],
-                                                          'pval': [temp_pval]})], ignore_index=True)
+                                                          'pval': [temp_pval],
+                                                'kendall_w': [kendall_w_pipeline]})], ignore_index=True)
 
     df_all_nr_qs = df_all_nr.pivot_table(index=['dataset', 'bs', 'pipeline', 'train_size'],
                                                         columns=['QS'], values='rel_improv',
                                                         aggfunc='mean')#.reset_index()
     temp_stat, temp_pval = friedmanchisquare(*np.array(df_all_nr_qs).T)
+    kendall_w_qs = kendall_w(np.array(df_all_nr_qs))
     pval_df = pd.concat([pval_df, pd.DataFrame({'test_name': ['QS'], 'friedman_stat': [temp_stat],
-                                                'pval': [temp_pval]})], ignore_index=True)
+                                                'pval': [temp_pval],
+                                                'kendall_w': [kendall_w_qs]})], ignore_index=True)
     fname = f"friedman_pvals_rel_improv.csv"
     pval_df.to_csv(os.path.join(op_dir, fname), index=False)
 
@@ -963,6 +986,36 @@ def wilcoxon_test_rel_improv(df_all_orig, op_dir):
     print(pval_bsize_df)
 
 
+def compute_feature_importance(df_all, op_dir):
+    df_all['bs'] = [f"({r['batch_size']},{r['seed_size']})" for _, r in df_all.iterrows()]
+    print('===== Feature importance')
+    df_all_nr = df_all[df_all['QS'] != 'random']
+    # print(df_all_nr)
+    from interpret.glassbox import ExplainableBoostingRegressor
+    ebm = ExplainableBoostingRegressor()  #ExplainableBoostingClassifier()
+    features = ['dataset', 'bs', 'QS', 'pipeline', 'train_size']
+    X = df_all_nr[features]
+    y = df_all_nr['rel_improv']
+    print(y.min(), y.max(), df_all_nr[df_all_nr['rel_improv']==y.min()], '\n',df_all_nr[df_all_nr['rel_improv']==y.max()])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8)
+    ebm.fit(X_train, y_train)
+    ebm_exp = ebm.explain_global()
+    plotly_fig = ebm_exp.visualize()
+    plotly_fig.write_image(f"{op_dir}/ebm.png")
+    y_pred = ebm.predict(X_test)
+    print(y_test.min(), y_test.max())
+    results = {}
+    results['RMSE'] = root_mean_squared_error(y_test, y_pred)
+    results['MSE'] = mean_squared_error(y_test, y_pred)
+    results['R2 score'] = r2_score(y_test, y_pred)
+    imp_scores = {name: score for name, score in zip(ebm_exp.data()['names'], ebm_exp.data()['scores'])}
+
+    results['importance_scores'] = {k:v for k, v in sorted(imp_scores.items(), key=lambda item: item[1])[::-1]}
+    fname = f"ebm_feature_importance.json"
+    with open(os.path.join(op_dir, fname),'w') as f:
+        json.dump(results, f, indent=4)
+
+
 def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_annot=True):
     '''For a given batch/seed size'''
     if not os.path.exists(op_dir) or not os.path.isdir(op_dir):
@@ -1001,7 +1054,10 @@ def relative_improv_non_random_vs_random(df_all, op_dir, num_plots=4, heatmap_an
     # print(df_all.head())
     # print(df_all.tail())
 
-    # Friedman test
+    # Effect size: QS vs prediction pipline
+    compute_feature_importance(df_all.copy(), op_dir)
+
+    # Friedman test and Kendall's W
     friedman_test(df_all.copy(), op_dir)
 
     # Wilcoxon test
