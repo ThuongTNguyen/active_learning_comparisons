@@ -936,7 +936,7 @@ def friedman_test(df_all, op_dir):
                                                         columns=['QS'], values='rel_improv',
                                                         aggfunc='mean')#.reset_index()
     temp_stat, temp_pval = friedmanchisquare(*np.array(df_all_nr_qs).T)
-    kendall_w_qs = kendall_w(np.array(df_all_nr_qs))
+    kendall_w_qs = kendall_w(np.array(df_all_nr_qs.T))
     pval_df = pd.concat([pval_df, pd.DataFrame({'test_name': ['QS'], 'friedman_stat': [temp_stat],
                                                 'pval': [temp_pval],
                                                 'kendall_w': [kendall_w_qs]})], ignore_index=True)
