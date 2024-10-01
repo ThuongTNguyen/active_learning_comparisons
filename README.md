@@ -1,3 +1,6 @@
+# This repo is no longer maintained! Instead the library is now maintained [here](https://github.com/ThuongTNguyen/ALchemist). 
+
+
 ## Active Learning Benchmarking Framework
 
 This is a framework for benchmarking *Active Learning (AL)* algorithms.
